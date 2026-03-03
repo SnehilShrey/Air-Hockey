@@ -12,9 +12,9 @@ export const player = {
 
 export const ai = {
     x: CONFIG.WIDTH - 150,
-    y: CONFIG.HEIGHT / 2,
+    y: CONFIG.HEIGHT / -120,
     radius: 20,
-    speed: 6
+    speed: 7
 };
 
 const canvas = document.getElementById("gameCanvas");

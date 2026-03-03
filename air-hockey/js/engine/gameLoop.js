@@ -12,4 +12,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-gameLoop();
+export function startGameLoop() {
+    gameLoop();
+}

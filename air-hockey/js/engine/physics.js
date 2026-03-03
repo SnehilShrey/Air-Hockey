@@ -2,12 +2,16 @@ import { CONFIG } from "../config.js";
 import { puck, resetPuck } from "../entities/puck.js";
 import { player, ai } from "../entities/paddle.js";
 
-const FRICTION = 0.994;
+const FRICTION = 0.992;
+const MAX_SPEED = 12;
 
-let playerScore = 0;
-let aiScore = 0;
+export let playerScore = 0;
+export let aiScore = 0;
+export let gameState = "serve";
 
 export function updateGame() {
+
+    //if (gameState !== "playing") return;
 
     updateAI();
 
@@ -26,11 +30,12 @@ export function updateGame() {
 }
 
 function clampSpeed() {
-    const speed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
+    const speed = Math.hypot(puck.vx, puck.vy);
 
-    if (speed > CONFIG.MAX_SPEED) {
-        puck.vx = (puck.vx / speed) * CONFIG.MAX_SPEED;
-        puck.vy = (puck.vy / speed) * CONFIG.MAX_SPEED;
+    if (speed > MAX_SPEED) {
+        const scale = MAX_SPEED / speed;
+        puck.vx *= scale;
+        puck.vy *= scale;
     }
 }
 
@@ -58,6 +63,7 @@ function checkGoal() {
         if (puck.y > goalTop && puck.y < goalBottom) {
             playerScore++;
             resetPuck();
+            gameState = "serve";
         } else {
             puck.x = CONFIG.WIDTH - puck.radius;
             puck.vx *= -1;
@@ -75,6 +81,12 @@ function checkGoal() {
             puck.vx *= -1;
         }
     }
+
+    if (playerScore >= CONFIG.WINNING_SCORE ||
+    aiScore >= CONFIG.WINNING_SCORE) {
+
+    gameState = "gameover";
+}
 }
 
 function handlePlayerCollision() {
@@ -111,7 +123,7 @@ function circleCollision(paddle, isPlayer) {
 
         if (velAlongNormal > 0) return;
 
-        const restitution = 0.99;
+        const restitution = 0.1;
         const impulse = -(1 + restitution) * velAlongNormal;
 
         puck.vx += impulse * nx;
@@ -125,37 +137,29 @@ function circleCollision(paddle, isPlayer) {
 
 function updateAI() {
 
-    const defendLine = CONFIG.WIDTH * 0.75;
-    const centerY = CONFIG.HEIGHT / 2;
+    const rightHalfStart = CONFIG.WIDTH / 2 + ai.radius;
+    const rightEdge = CONFIG.WIDTH - ai.radius;
 
-    let targetX = defendLine;
-    let targetY = centerY;
+    // --- STRIKE MODE ---
+    // If puck is on AI side → attack directly
+    if (puck.x > CONFIG.WIDTH / 2) {
 
-    // Only react if puck is moving toward AI
-    if (puck.vx > 0) {
+        moveAITo(puck.x, puck.y);
 
-        // Predict where puck will reach defend line
-        const time = (defendLine - puck.x) / puck.vx;
+    } 
+    // --- DEFENSIVE MODE ---
+    else {
 
-        if (time > 0) {
-
-            let predictedY = puck.y + puck.vy * time;
-
-            // Clamp inside board
-            predictedY = Math.max(ai.radius, predictedY);
-            predictedY = Math.min(CONFIG.HEIGHT - ai.radius, predictedY);
-
-            targetY = predictedY;
-        }
+        // Stay near center but responsive vertically
+        moveAITo(CONFIG.WIDTH - 120, puck.y);
     }
 
-    // IMPORTANT RULE:
-    // AI never crosses puck's x position
-    if (ai.x > puck.x - 10) {
-        targetX = Math.min(defendLine, puck.x - 10);
-    }
+    // Hard restriction: AI never crosses half
+    if (ai.x < rightHalfStart)
+        ai.x = rightHalfStart;
 
-    moveAITo(targetX, targetY);
+    if (ai.x > rightEdge)
+        ai.x = rightEdge;
 }
 
 function moveAITo(targetX, targetY) {
@@ -182,4 +186,10 @@ function moveAITo(targetX, targetY) {
 
     if (ai.y + ai.radius > CONFIG.HEIGHT)
         ai.y = CONFIG.HEIGHT - ai.radius;
+}
+
+export function startRound() {
+    if (gameState === "serve") {
+        gameState = "playing";
+    }
 }

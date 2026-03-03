@@ -1,6 +1,8 @@
 import { CONFIG } from "../config.js";
 import { puck } from "../entities/puck.js";
 import { player, ai } from "../entities/paddle.js";
+import { playerScore, aiScore, gameState } 
+from "./physics.js";
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -47,4 +49,17 @@ export function draw() {
     ctx.arc(puck.x, puck.y, puck.radius, 0, Math.PI * 2);
     ctx.fillStyle = "cyan";
     ctx.fill();
+
+    ctx.fillStyle = "white";
+    ctx.font = "28px Arial";
+    ctx.fillText(playerScore, CONFIG.WIDTH * 0.25, 40);
+    ctx.fillText(aiScore, CONFIG.WIDTH * 0.75, 40);
+
+    if (gameState === "gameover") {
+    ctx.fillStyle = "white";
+    ctx.font = "40px Arial";
+
+    const winner = playerScore > aiScore ? "YOU WIN!" : "AI WINS!";
+    ctx.fillText(winner, CONFIG.WIDTH / 2 - 100, CONFIG.HEIGHT / 2);
+}
 }
